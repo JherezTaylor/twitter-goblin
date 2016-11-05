@@ -41,7 +41,6 @@ def main():
         "FATAL":logging.FATAL,
     }
 
-
     def exit_gracefully(signal, frame):
         logger.warn("Shutdown signal received! Shutting down.")
         sys.exit(0)
@@ -58,19 +57,20 @@ def main():
     parser_search.add_argument('-l', '--lang', type=six.text_type, dest='lang', help='Restricts tweets to the given language, given by an ISO 639-1 code. Language detection is best-effort.\nExample value: eu')
     parser_search.add_argument('-r', '--result-type', '--result_type', type=six.text_type, default='mixed', dest='result_type', choices=["mixed","recent","popular"],help='Specifies what type of search results you would prefer to receive. The current default is "mixed". Valid values include: "mixed" - Include both popular and real time results in the response. "recent" - return only the most recent results in the response. "popular" - return only the most popular results in the response.')
     parser_search.add_argument('-w', '--wait', type=float, dest='waittime', default=2.0, help='Mandatory sleep time before executing a query. The default value is 2, which should ensure that the rate limit of 450 per 15 minutes is never reached.')
-    parser_search.add_argument('-c', '--clean', dest='clean', action='store_true', default=False, help="Set this switch to use a clean since_id.")    
+    parser_search.add_argument('-c', '--clean', dest='clean', action='store_true', default=False, help="Set this switch to use a clean since_id.")
+    parser_search.add_argument('-lf', '--load-file', dest='load_file', action='store_true', default=False, help="Set this switch to use a load query terms from file.")
 
     #search api auth specific
     parser_search.add_argument('-ck', '--consumer-key', '--consumer_key', type=six.text_type, dest='consumer_key', help="The consumer key that you obtain when you create an app at https://apps.twitter.com/")
     parser_search.add_argument('-cs', '--consumer-secret', '--consumer_secret', type=six.text_type, dest='consumer_secret', help="The consumer secret that you obtain when you create an app at https://apps.twitter.com/")
-    parser_search.add_argument('-at', '--access-token', '--access_token', type=six.text_type, dest='access_token', help="You can use consumer_key and access_token instead of consumer_key and consumer_secret. This will make authentication faster, as the token will not be fetched. The access token will be printed to the standard output when connecting with the consumer_key and consumer_secret.")    
+    parser_search.add_argument('-at', '--access-token', '--access_token', type=six.text_type, dest='access_token', help="You can use consumer_key and access_token instead of consumer_key and consumer_secret. This will make authentication faster, as the token will not be fetched. The access token will be printed to the standard output when connecting with the consumer_key and consumer_secret.")
 
     #mongoDB specific arguments
     parser_search.add_argument('-d', '--db', type=six.text_type, dest='dburi', default='mongodb://localhost:27017/twitter', help='MongoDB URI, example: mongodb://dbuser:dbpassword@localhost:27017/dbname Defaults to mongodb://localhost:27017/twitter')
     parser_search.add_argument('-qc', '--queries-collection','--queries_collection', dest='queries_collection', type=six.text_type, default='queries', help='The name of the collection for storing the highest since_id for each query. Default is queries.')
     parser_search.add_argument('-tc', '--tweets-collection','--tweets_collection', dest='tweets_collection', type=six.text_type, default='tweets', help='The name of the collection for storing tweets. Default is tweets.')
-    
-    parser_search.add_argument('-v', '--verbosity', type=six.text_type, dest='loglevel', default='WARN', choices=["DEBUG","INFO","WARN","ERROR","CRITICAL","FATAL"], help='The level of verbosity.')    
+
+    parser_search.add_argument('-v', '--verbosity', type=six.text_type, dest='loglevel', default='WARN', choices=["DEBUG","INFO","WARN","ERROR","CRITICAL","FATAL"], help='The level of verbosity.')
 
     parser_stream = subparsers.add_parser('stream', help='Obtain tweets using the streaming API. If you do not provide any arguments, the sample stream will be tracked. For a personalized stream at least one of the following must be entered: follow, track, or locations. The default access level allows up to 400 track keywords, 5,000 follow userids and 25 0.1-360 degree location boxes.')
 
@@ -82,16 +82,17 @@ def main():
     parser_stream.add_argument('-f', '--follow', type=six.text_type, dest='follow', help='A comma separated list of user IDs, indicating the users to return statuses for in the stream. More information at https://dev.twitter.com/docs/streaming-apis/parameters#follow')
     parser_stream.add_argument('-t', '--track', type=six.text_type, dest='track', help='Keywords to track. Phrases of keywords are specified by a comma-separated list. More information at https://dev.twitter.com/docs/streaming-apis/parameters#track')
     parser_stream.add_argument('-l', '--locations', type=six.text_type, dest='locations', help='A comma-separated list of longitude,latitude pairs specifying a set of bounding boxes to filter Tweets by. On geolocated Tweets falling within the requested bounding boxes will be included—unlike the Search API, the user\'s location field is not used to filter tweets. Each bounding box should be specified as a pair of longitude and latitude pairs, with the southwest corner of the bounding box coming first. For example: "-122.75,36.8,-121.75,37.8" will track all tweets from San Francisco. NOTE: Bounding boxes do not act as filters for other filter parameters. More information at https://dev.twitter.com/docs/streaming-apis/parameters#locations')
+    parser_stream.add_argument('-lf', '--load-file', dest='load_file', action='store_true', default=False, help="Set this switch to use a load query terms from file.")
 
     parser_stream.add_argument('-fh', '--firehose', action='store_true', default=False, dest='firehose', help="Use this option to receive all public tweets if there are no keywords, users or locations to track. This requires special permission from Twitter. Otherwise a sample of 1% of tweets will be returned.")
 
     #stream api auth specific
     parser_stream.add_argument('-ck', '--consumer-key', '--consumer_key', type=six.text_type, dest='consumer_key', help="The consumer key that you obtain when you create an app at https://apps.twitter.com/")
     parser_stream.add_argument('-cs', '--consumer-secret', '--consumer_secret', type=six.text_type, dest='consumer_secret', help="The consumer secret that you obtain when you create an app at https://apps.twitter.com/")
-    parser_stream.add_argument('-at', '--access-token', '--access_token', type=six.text_type, dest='access_token', help="You can generate your user access token at http://apps.twitter.com by clicking 'Create my access token'.")    
+    parser_stream.add_argument('-at', '--access-token', '--access_token', type=six.text_type, dest='access_token', help="You can generate your user access token at http://apps.twitter.com by clicking 'Create my access token'.")
     parser_stream.add_argument('-ats', '--access-token-secret', '--access_token_secret', type=six.text_type, dest='access_token_secret', help="You can generate your user access token secret at http://apps.twitter.com by clicking 'Create my access token'.")
 
-    parser_stream.add_argument('-v', '--verbosity', type=six.text_type, dest='loglevel', default='WARN', choices=["DEBUG","INFO","WARN","ERROR","CRITICAL","FATAL"], help='The level of verbosity.')    
+    parser_stream.add_argument('-v', '--verbosity', type=six.text_type, dest='loglevel', default='WARN', choices=["DEBUG","INFO","WARN","ERROR","CRITICAL","FATAL"], help='The level of verbosity.')
 
     if len(sys.argv)<2:
         parser.print_help()
@@ -105,6 +106,24 @@ def main():
         if args.subcommand=='stream':
             parser_stream.print_help()
         sys.exit(1)
+
+    def load_csv_file(filename):
+        """
+        Accepts a file name and loads it as a list
+        """
+        try:
+            with open(csv_path + filename + '.csv', 'r') as f:
+                reader = csv.reader(f)
+                temp = list(reader)
+                # flatten to 1D, it gets loaded as 2D array
+                result = [x for sublist in temp for x in sublist]
+        except IOError as e:
+            print "I/O error({0}): {1}".format(e.errno, e.strerror)
+        else:
+            f.closed
+            return result
+
+    # def build_query_string(keywords):
 
     if args.subcommand=='search':
         query = args.query
@@ -248,7 +267,7 @@ def main():
         tweets = db[args.tweets_collection]
 
         tweets.ensure_index("id",direction=pymongo.DESCENDING,unique=True)
-        tweets.ensure_index([("coordinates.coordinates",pymongo.GEO2D),])        
+        tweets.ensure_index([("coordinates.coordinates",pymongo.GEO2D),])
 
         class TapStreamer(TwythonStreamer):
             def on_success(self, data):
