@@ -22,7 +22,7 @@ You can also use the streaming API to store tweets. Storing tweets from the stre
 
 ## Loading data from CSV ##
 
-You can also load your search and streaming keywords using CSV files. See the examples and arguments below. Add your files to
+You can also load your search and streaming keywords using CSV files. Twitter recommends that you only pass 10 keywords and operators to the search API, so create your CSV files in increments of 10. When loading from file with the search API, the OR operator is applied. See the examples and arguments below. Add your files to
 
 ```bash
 twitter-tap/data
@@ -186,6 +186,18 @@ autorestart=true
 startsecs=10
 stopwaitsecs=10
 
+; If you want to use supervisor while loading the keywords from a file you must set the directory as follows
+
+[program:tapstream]
+command=tap stream --consumer-key CONSUMERKEY --consumer-secret CONSUMERSECRET --access-token ACCESSTOKEN --access-token-secret ACCESSTOKENSECRET --track-load "miley_fans" -v DEBUG
+stdout_logfile=tap_stream.log
+stderr_logfile=tap_stream_err.log
+autostart=true
+autorestart=true
+startsecs=10
+stopwaitsecs=10
+directory=twitter_tap/
+
 ```
 
 Afterwards you can start the daemon like this (you must be in the same folder as supervisord.conf or your supervisord.conf must be /etc/)
@@ -227,6 +239,10 @@ supervisorctl shutdown
 - **Supervisor** http://supervisord.org/
 
 # Changes #
+
+v2.0.4:
+
+- Added support for loading keywords from csv files.
 
 v2.0.3:
 
