@@ -62,7 +62,7 @@ def main():
     parser_search.add_argument('-r', '--result-type', '--result_type', type=six.text_type, default='mixed', dest='result_type', choices=["mixed","recent","popular"],help='Specifies what type of search results you would prefer to receive. The current default is "mixed". Valid values include: "mixed" - Include both popular and real time results in the response. "recent" - return only the most recent results in the response. "popular" - return only the most popular results in the response.')
     parser_search.add_argument('-w', '--wait', type=float, dest='waittime', default=2.0, help='Mandatory sleep time before executing a query. The default value is 2, which should ensure that the rate limit of 450 per 15 minutes is never reached.')
     parser_search.add_argument('-c', '--clean', dest='clean', action='store_true', default=False, help="Set this switch to use a clean since_id.")
-    parser_search.add_argument('-ql', '--query_load', type=six.text_type, dest='query_load', help="Load query terms from filename. Loads csv files, pass in name without extension")
+    parser_search.add_argument('-ql', '--query-load', type=six.text_type, dest='query_load', help="Load query terms from filename. Loads csv files, just pass in a filename without the extension")
 
     #search api auth specific
     parser_search.add_argument('-ck', '--consumer-key', '--consumer_key', type=six.text_type, dest='consumer_key', help="The consumer key that you obtain when you create an app at https://apps.twitter.com/")
@@ -86,8 +86,8 @@ def main():
     parser_stream.add_argument('-f', '--follow', type=six.text_type, dest='follow', help='A comma separated list of user IDs, indicating the users to return statuses for in the stream. More information at https://dev.twitter.com/docs/streaming-apis/parameters#follow')
     parser_stream.add_argument('-t', '--track', type=six.text_type, dest='track', help='Keywords to track. Phrases of keywords are specified by a comma-separated list. More information at https://dev.twitter.com/docs/streaming-apis/parameters#track')
     parser_stream.add_argument('-l', '--locations', type=six.text_type, dest='locations', help='A comma-separated list of longitude,latitude pairs specifying a set of bounding boxes to filter Tweets by. On geolocated Tweets falling within the requested bounding boxes will be included—unlike the Search API, the user\'s location field is not used to filter tweets. Each bounding box should be specified as a pair of longitude and latitude pairs, with the southwest corner of the bounding box coming first. For example: "-122.75,36.8,-121.75,37.8" will track all tweets from San Francisco. NOTE: Bounding boxes do not act as filters for other filter parameters. More information at https://dev.twitter.com/docs/streaming-apis/parameters#locations')
-    parser_stream.add_argument('-fl', '--follow-load', type=six.text_type, dest='follow_load', help="Load and append account IDs to follow from filename. Loads csv files, pass in name without extension")
-    parser_stream.add_argument('-tl', '--track-load', type=six.text_type, dest='track_load', help="Load and append terms to track from filename. Loads csv files, pass in name without extension")
+    parser_stream.add_argument('-fl', '--follow-load', type=six.text_type, dest='follow_load', help="Specify a filename to load and append account IDs from. Loads csv files, just pass in a filename without the extension")
+    parser_stream.add_argument('-tl', '--track-load', type=six.text_type, dest='track_load', help="Specify a filename to load append terms from. Loads csv files, just pass in a filename without the extension")
 
     parser_stream.add_argument('-fh', '--firehose', action='store_true', default=False, dest='firehose', help="Use this option to receive all public tweets if there are no keywords, users or locations to track. This requires special permission from Twitter. Otherwise a sample of 1% of tweets will be returned.")
 

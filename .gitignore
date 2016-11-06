@@ -58,4 +58,4 @@ docs/_build/
 settings.py
 supervisord.conf
 venv/
-twitter_tap/data/
+*.csv
