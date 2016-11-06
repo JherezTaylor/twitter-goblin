@@ -62,7 +62,7 @@ def main():
     parser_search.add_argument('-r', '--result-type', '--result_type', type=six.text_type, default='mixed', dest='result_type', choices=["mixed","recent","popular"],help='Specifies what type of search results you would prefer to receive. The current default is "mixed". Valid values include: "mixed" - Include both popular and real time results in the response. "recent" - return only the most recent results in the response. "popular" - return only the most popular results in the response.')
     parser_search.add_argument('-w', '--wait', type=float, dest='waittime', default=2.0, help='Mandatory sleep time before executing a query. The default value is 2, which should ensure that the rate limit of 450 per 15 minutes is never reached.')
     parser_search.add_argument('-c', '--clean', dest='clean', action='store_true', default=False, help="Set this switch to use a clean since_id.")
-    parser_search.add_argument('-lf', '--load-file', type=six.text_type, dest='load_file', help="Set this switch to use a load query terms from file.")
+    parser_search.add_argument('-ql', '--query_load', type=six.text_type, dest='query_load', help="Load query terms from filename. Loads csv files, pass in name without extension")
 
     #search api auth specific
     parser_search.add_argument('-ck', '--consumer-key', '--consumer_key', type=six.text_type, dest='consumer_key', help="The consumer key that you obtain when you create an app at https://apps.twitter.com/")
@@ -86,7 +86,8 @@ def main():
     parser_stream.add_argument('-f', '--follow', type=six.text_type, dest='follow', help='A comma separated list of user IDs, indicating the users to return statuses for in the stream. More information at https://dev.twitter.com/docs/streaming-apis/parameters#follow')
     parser_stream.add_argument('-t', '--track', type=six.text_type, dest='track', help='Keywords to track. Phrases of keywords are specified by a comma-separated list. More information at https://dev.twitter.com/docs/streaming-apis/parameters#track')
     parser_stream.add_argument('-l', '--locations', type=six.text_type, dest='locations', help='A comma-separated list of longitude,latitude pairs specifying a set of bounding boxes to filter Tweets by. On geolocated Tweets falling within the requested bounding boxes will be included—unlike the Search API, the user\'s location field is not used to filter tweets. Each bounding box should be specified as a pair of longitude and latitude pairs, with the southwest corner of the bounding box coming first. For example: "-122.75,36.8,-121.75,37.8" will track all tweets from San Francisco. NOTE: Bounding boxes do not act as filters for other filter parameters. More information at https://dev.twitter.com/docs/streaming-apis/parameters#locations')
-    parser_stream.add_argument('-lf', '--load-file', type=six.text_type, dest='load_file', help="Set this switch to use a load query terms from file.")
+    parser_stream.add_argument('-fl', '--follow-load', type=six.text_type, dest='follow_load', help="Load and append account IDs to follow from filename. Loads csv files, pass in name without extension")
+    parser_stream.add_argument('-tl', '--track-load', type=six.text_type, dest='track_load', help="Load and append terms to track from filename. Loads csv files, pass in name without extension")
 
     parser_stream.add_argument('-fh', '--firehose', action='store_true', default=False, dest='firehose', help="Use this option to receive all public tweets if there are no keywords, users or locations to track. This requires special permission from Twitter. Otherwise a sample of 1% of tweets will be returned.")
 
@@ -127,18 +128,29 @@ def main():
             f.closed
             return result
 
-    def build_query_string(query_words):
-        result = ''.join([q + ' OR ' for q in query_words[0:(len(query_words)-1)]])
-        return result + str(query_words[len(query_words)-1])
+    def build_query_string(query_words, api_type):
+        """ 0 for search api, 1 for stream api
+        """
+        if api_type == 0:
+            result = ''.join([q + ' OR ' for q in query_words[0:(len(query_words)-1)]])
+            return result + str(query_words[len(query_words)-1])
+        elif api_type == 1:
+            result = ''.join([q + ',' for q in query_words[0:(len(query_words)-1)]])
+            return result + str(query_words[len(query_words)-1])
 
-    def load_query(filename):
+    def load_query(filename, api_type):
+        """ 0 for search api, 1 for stream api
+        """
         keywords = load_csv_file(filename)
-        return build_query_string(keywords)
+        if api_type == 0:
+            return build_query_string(keywords, 0)
+        else:
+            return build_query_string(keywords, 1)
 
     if args.subcommand=='search':
 
-        if args.load_file:
-            query = load_query(args.load_file)
+        if args.query_load:
+            query = load_query(args.query_load, 0)
             geocode = args.geocode
             lang = args.lang
             loglevel = args.loglevel
@@ -167,7 +179,7 @@ def main():
             logger.fatal("Consumer secret or access token is required.")
             sys.exit(1)
 
-        if args.load_file and args.query:
+        if args.query_load and args.query:
             logger.fatal("Please use -lf or -q, not both.")
             sys.exit(1)
 
@@ -316,7 +328,22 @@ def main():
 
         logger.info("Collecting tweets from the streaming API...")
 
-        if args.follow or args.track or args.locations:
+        if args.follow or args.track or args.locations or args.follow_load or args.track_load:
+
+            if args.track_load and args.track is None:
+                 args.track = load_query(args.track_load,1)
+
+            if args.follow_load and args.follow is None:
+                 args.follow = load_query(args.follow_load,1)
+
+            if args.follow_load and args.follow:
+                prep_follow = load_query(args.follow_load,1)
+                args.follow += ',' + prep_follow
+
+            if args.track_load and args.track:
+                prep_track = load_query(args.track_load,1)
+                args.track += ',' + prep_track
+
             stream.statuses.filter(follow=args.follow,track=args.track,locations=args.locations)
         elif args.firehose:
             stream.statuses.firehose()
