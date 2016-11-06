@@ -20,6 +20,14 @@ The tool can be run from the command line or be run as a daemon using supervisor
 
 You can also use the streaming API to store tweets. Storing tweets from the streaming API is much more straightforward, but you can only get the tweets you are currently streaming. Using the search API will also get you tweets from a couple of days back. Check out the documentation so that you can see what sorts of queries you can make with the search API vs the streaming API.
 
+## Loading data from CSV ##
+
+You can also load your search and streaming keywords using CSV files. See the examples and arguments below. Add your files to
+
+```bash
+twitter-tap/data
+```
+
 # Installation #
 
 Install Twitter Tap using [pip](http://www.pip-installer.org/)
@@ -67,6 +75,10 @@ To execute a query you must provide a **query**, the **consumer secret** and eit
 
 ```bash
 tap search --consumer-key CONSUMERKEY --consumer-secret CONSUMERSECRET -q "miley cyrus" -v DEBUG
+```
+
+```bash
+tap search --consumer-key CONSUMERKEY --consumer-secret CONSUMERSECRET -ql "miley_fans" -v DEBUG
 ```
 
 Search options:
