@@ -136,9 +136,8 @@ def main():
         return build_query_string(keywords)
 
     if args.subcommand=='search':
+
         if args.load_file:
-            print 'pass'
-            print args.load_file
             query = load_query(args.load_file)
             geocode = args.geocode
             lang = args.lang
@@ -146,8 +145,8 @@ def main():
             waittime = args.waittime
             clean_since_id = args.clean
             result_type = args.result_type
+
         else:
-            print 'fail'
             query = args.query
             geocode = args.geocode
             lang = args.lang
@@ -166,6 +165,10 @@ def main():
 
         if CONSUMER_SECRET is None and ACCESS_TOKEN is None:
             logger.fatal("Consumer secret or access token is required.")
+            sys.exit(1)
+
+        if args.load_file and args.query:
+            logger.fatal("Please use -lf or -q, not both.")
             sys.exit(1)
 
         # here we get the access token if it is not provided with the options
