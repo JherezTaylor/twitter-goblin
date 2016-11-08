@@ -59,3 +59,4 @@ settings.py
 supervisord.conf
 venv/
 *.csv
+*.bak
