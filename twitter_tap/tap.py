@@ -216,7 +216,7 @@ def main():
         queries.create_index([("geocode", pymongo.ASCENDING)], unique=True)
         queries.create_index([("lang", pymongo.ASCENDING)], unique=True)
 
-        tweets.create_index("id", pymongo.DESCENDING, unique=True)
+        tweets.create_index([("id", pymongo.DESCENDING)], unique=True)
         tweets.create_index([("coordinates.coordinates", pymongo.GEO2D), ])
 
         if not clean_since_id:
