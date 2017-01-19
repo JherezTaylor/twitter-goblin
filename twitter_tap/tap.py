@@ -87,6 +87,7 @@ def main():
     parser_stream.add_argument('-f', '--follow', type=six.text_type, dest='follow', help='A comma separated list of user IDs, indicating the users to return statuses for in the stream. More information at https://dev.twitter.com/docs/streaming-apis/parameters#follow')
     parser_stream.add_argument('-t', '--track', type=six.text_type, dest='track', help='Keywords to track. Phrases of keywords are specified by a comma-separated list. More information at https://dev.twitter.com/docs/streaming-apis/parameters#track')
     parser_stream.add_argument('-l', '--locations', type=six.text_type, dest='locations', help='A comma-separated list of longitude,latitude pairs specifying a set of bounding boxes to filter Tweets by. On geolocated Tweets falling within the requested bounding boxes will be included—unlike the Search API, the user\'s location field is not used to filter tweets. Each bounding box should be specified as a pair of longitude and latitude pairs, with the southwest corner of the bounding box coming first. For example: "-122.75,36.8,-121.75,37.8" will track all tweets from San Francisco. NOTE: Bounding boxes do not act as filters for other filter parameters. More information at https://dev.twitter.com/docs/streaming-apis/parameters#locations')
+    parser_stream.add_argument('--lang', type=six.text_type, dest='lang', help='Restricts tweets to the given language, given by an ISO 639-1 code. Language detection is best-effort.\nExample value: eu')
     parser_stream.add_argument('-fl', '--follow-load', type=six.text_type, dest='follow_load', help="Specify a filename to load and append account IDs from. Loads csv files, just pass in a filename without the extension")
     parser_stream.add_argument('-tl', '--track-load', type=six.text_type, dest='track_load', help="Specify a filename to load append terms from. Loads csv files, just pass in a filename without the extension")
 
@@ -100,16 +101,16 @@ def main():
 
     parser_stream.add_argument('-v', '--verbosity', type=six.text_type, dest='loglevel', default='WARN', choices=["DEBUG","INFO","WARN","ERROR","CRITICAL","FATAL"], help='The level of verbosity.')
 
-    if len(sys.argv)<2:
+    if len(sys.argv) < 2:
         parser.print_help()
         sys.exit(1)
 
     args = parser.parse_args()
 
-    if len(sys.argv)<3:
-        if args.subcommand=='search':
+    if len(sys.argv) < 3:
+        if args.subcommand == 'search':
             parser_search.print_help()
-        if args.subcommand=='stream':
+        if args.subcommand == 'stream':
             parser_stream.print_help()
         sys.exit(1)
 
@@ -133,11 +134,13 @@ def main():
         """ 0 for search api, 1 for stream api
         """
         if api_type == 0:
-            result = ''.join([q + ' OR ' for q in query_words[0:(len(query_words)-1)]])
-            return result + str(query_words[len(query_words)-1])
+            result = ''.join(
+                [q + ' OR ' for q in query_words[0:(len(query_words) - 1)]])
+            return result + str(query_words[len(query_words) - 1])
         elif api_type == 1:
-            result = ''.join([q + ',' for q in query_words[0:(len(query_words)-1)]])
-            return result + str(query_words[len(query_words)-1])
+            result = ''.join(
+                [q + ',' for q in query_words[0:(len(query_words) - 1)]])
+            return result + str(query_words[len(query_words) - 1])
 
     def load_query(filename, api_type):
         """ 0 for search api, 1 for stream api
@@ -148,7 +151,7 @@ def main():
         else:
             return build_query_string(keywords, 1)
 
-    if args.subcommand=='search':
+    if args.subcommand == 'search':
 
         if args.query_load:
             query = load_query(args.query_load, 0)
@@ -173,7 +176,8 @@ def main():
         ACCESS_TOKEN = args.access_token
         MONGODB_URI = args.dburi
 
-        logging.basicConfig(format=FORMAT,level=logging_dict[loglevel],stream=sys.stdout)
+        logging.basicConfig(format=FORMAT, level=logging_dict[
+                            loglevel], stream=sys.stdout)
         logger = logging.getLogger('twitter')
 
         if CONSUMER_SECRET is None and ACCESS_TOKEN is None:
@@ -186,17 +190,20 @@ def main():
 
         # here we get the access token if it is not provided with the options
         if not ACCESS_TOKEN:
-            logger.warn("No access token provided in options. Obtaining one now...")
-            token_getter = Twython(CONSUMER_KEY,CONSUMER_SECRET,oauth_version=2)
+            logger.warn(
+                "No access token provided in options. Obtaining one now...")
+            token_getter = Twython(
+                CONSUMER_KEY, CONSUMER_SECRET, oauth_version=2)
             ACCESS_TOKEN = token_getter.obtain_access_token()
-            logger.warn("Access token: "+ACCESS_TOKEN)
+            logger.warn("Access token: " + ACCESS_TOKEN)
 
         twitter = Twython(CONSUMER_KEY, access_token=ACCESS_TOKEN)
 
         try:
             client = pymongo.MongoClient(MONGODB_URI)
         except:
-            logger.fatal("Couldn't connect to MongoDB. Please check your --db argument settings.")
+            logger.fatal(
+                "Couldn't connect to MongoDB. Please check your --db argument settings.")
             sys.exit(1)
 
         parsed_dburi = pymongo.uri_parser.parse_uri(MONGODB_URI)
@@ -205,12 +212,16 @@ def main():
         queries = db[args.queries_collection]
         tweets = db[args.tweets_collection]
 
-        queries.ensure_index([("query",pymongo.ASCENDING),("geocode",pymongo.ASCENDING),("lang",pymongo.ASCENDING)],unique=True)
-        tweets.ensure_index("id",direction=pymongo.DESCENDING,unique=True)
-        tweets.ensure_index([("coordinates.coordinates",pymongo.GEO2D),])
+        queries.create_index([("query", pymongo.ASCENDING)], unique=True)
+        queries.create_index([("geocode", pymongo.ASCENDING)], unique=True)
+        queries.create_index([("lang", pymongo.ASCENDING)], unique=True)
+
+        tweets.create_index("id", pymongo.DESCENDING, unique=True)
+        tweets.create_index([("coordinates.coordinates", pymongo.GEO2D), ])
 
         if not clean_since_id:
-            current_query = queries.find_one({'query':query,'geocode':geocode,'lang':lang})
+            current_query = queries.find_one(
+                {'query': query, 'geocode': geocode, 'lang': lang})
         else:
             current_query = None
         if current_query:
@@ -224,79 +235,94 @@ def main():
                 try:
                     results = twitter.search(**kwargs)
                 except TwythonRateLimitError:
-                    logger.warn("Rate limit reached, taking a break for a minute...\n")
+                    logger.warn(
+                        "Rate limit reached, taking a break for a minute...\n")
                     sleep(60)
                     continue
                 except TwythonError as err:
-                    logger.error("Some other error occured, taking a break for half a minute: "+str(err))
+                    logger.error(
+                        "Some other error occured, taking a break for half a minute: " + str(err))
                     sleep(30)
                     continue
                 return results
 
-        def save_tweets(statuses,current_since_id):
+        def save_tweets(statuses, current_since_id):
             for status in statuses:
-                status['created_at']=parse_datetime(status['created_at'])
+                if hasattr(status, 'retweeted_status'):
+                    continue
+                status['created_at'] = parse_datetime(status['created_at'])
+                status['fields_removed'] = False
                 try:
-                    status['user']['created_at']=parse_datetime(status['user']['created_at'])
+                    status['user']['created_at'] = parse_datetime(
+                        status['user']['created_at'])
                 except:
                     pass
-                tweets.update({'id':status['id']},status,upsert=True)
+                tweets.update({'id': status['id']}, status, upsert=True)
                 current_id = longtype(status['id'])
-                if current_id>current_since_id:
+                if current_id > current_since_id:
                     current_since_id = current_id
 
-            if len(statuses)==0:
+            if len(statuses) == 0:
                 logger.debug("No new tweets. Taking a break for 10 seconds...")
                 sleep(10)
             else:
-                logger.debug("Received "+str(len(statuses))+" tweets.")
+                logger.debug("Received " + str(len(statuses)) + " tweets.")
             return current_since_id
 
         logger.info("Collecting tweets from the search API...")
 
         while True:
-            results = perform_query(q=query,geocode=geocode,lang=lang,count=100,since_id=since_id,result_type=result_type)
+            results = perform_query(q=query, geocode=geocode, lang=lang,
+                                    count=100, since_id=since_id, result_type=result_type)
 
             refresh_url = results['search_metadata'].get('refresh_url')
             p = urlparse.urlparse(refresh_url)
             # we will now compute the new since_id as the maximum of all returned ids
             #new_since_id = dict(urlparse.parse_qsl(p.query))['since_id']
-            logger.debug("Rate limit for current window: "+str(twitter.get_lastfunction_header(header="x-rate-limit-remaining")))
+            logger.debug("Rate limit for current window: " +
+                         str(twitter.get_lastfunction_header(header="x-rate-limit-remaining")))
             if since_id:
                 current_since_id = longtype(since_id)
             else:
                 current_since_id = 0
-            new_since_id = save_tweets(results['statuses'],current_since_id)
+            new_since_id = save_tweets(results['statuses'], current_since_id)
 
             next_results = results['search_metadata'].get('next_results')
             while next_results:
                 p = urlparse.urlparse(next_results)
-                next_results_max_id = dict(urlparse.parse_qsl(p.query))['max_id']
-                results = perform_query(q=query,geocode=geocode,lang=lang,count=100,since_id=since_id,max_id=next_results_max_id,result_type=result_type)
+                next_results_max_id = dict(
+                    urlparse.parse_qsl(p.query))['max_id']
+                results = perform_query(q=query, geocode=geocode, lang=lang, count=100,
+                                        since_id=since_id, max_id=next_results_max_id, result_type=result_type)
                 next_results = results['search_metadata'].get('next_results')
-                logger.debug("Rate limit for current window: "+str(twitter.get_lastfunction_header(header="x-rate-limit-remaining")))
-                new_since_id = save_tweets(results['statuses'],new_since_id)
+                logger.debug("Rate limit for current window: " +
+                             str(twitter.get_lastfunction_header(header="x-rate-limit-remaining")))
+                new_since_id = save_tweets(results['statuses'], new_since_id)
 
             new_since_id = str(new_since_id)
-            queries.update({'query':query,'geocode':geocode,'lang':lang},{"$set":{'since_id':new_since_id}},upsert=True)
+            queries.update({'query': query, 'geocode': geocode, 'lang': lang}, {
+                           "$set": {'since_id': new_since_id}}, upsert=True)
             since_id = new_since_id
 
-    if args.subcommand=='stream':
+    if args.subcommand == 'stream':
         from twython import TwythonStreamer
 
         loglevel = args.loglevel
 
-        logging.basicConfig(format=FORMAT,level=logging_dict[loglevel],stream=sys.stdout)
+        logging.basicConfig(format=FORMAT, level=logging_dict[
+                            loglevel], stream=sys.stdout)
         logger = logging.getLogger('twitter')
 
         if args.consumer_key is None or args.consumer_secret is None or args.access_token is None or args.access_token_secret is None:
-            logger.fatal("Consumer key, consumer secret, access token and access token secret are all required when using the streaming API.")
+            logger.fatal(
+                "Consumer key, consumer secret, access token and access token secret are all required when using the streaming API.")
             sys.exit(1)
 
         try:
             client = pymongo.MongoClient(args.dburi)
         except:
-            logger.fatal("Couldn't connect to MongoDB. Please check your --db argument settings.")
+            logger.fatal(
+                "Couldn't connect to MongoDB. Please check your --db argument settings.")
             sys.exit(1)
 
         parsed_dburi = pymongo.uri_parser.parse_uri(args.dburi)
@@ -304,54 +330,65 @@ def main():
 
         tweets = db[args.tweets_collection]
 
-        tweets.ensure_index("id",direction=pymongo.DESCENDING,unique=True)
-        tweets.ensure_index([("coordinates.coordinates",pymongo.GEO2D),])
+        tweets.create_index([("id", pymongo.DESCENDING)], unique=True)
+        tweets.create_index([("coordinates.coordinates", pymongo.GEO2D)])
 
         class TapStreamer(TwythonStreamer):
+
             def on_success(self, data):
                 if 'text' in data:
-                    data['created_at']=parse_datetime(data['created_at'])
-                    try:
-                        data['user']['created_at']=parse_datetime(data['user']['created_at'])
-                    except:
+                    if hasattr(data, 'retweeted_status') or str(data['lang']) != str(args.lang):
                         pass
-                    try:
-                        tweets.insert(data)
-                    except Exception as e:
-                        exc_type, exc_obj, exc_tb = sys.exc_info()
-                        logger.error("Couldn't save a tweet: "+str(exc_obj))
+                    else:
+                        data['created_at'] = parse_datetime(data['created_at'])
+                        data['fields_removed'] = False
+                        try:
+                            data['user']['created_at'] = parse_datetime(
+                                data['user']['created_at'])
+                        except:
+                            pass
+                        try:
+                            tweets.insert(data)
+                        except Exception as e:
+                            exc_type, exc_obj, exc_tb = sys.exc_info()
+                            logger.error(
+                                "Couldn't save a tweet: " + str(exc_obj))
                 if 'limit' in data:
-                    logger.warn("The filtered stream has matched more Tweets than its current rate limit allows it to be delivered.")
-            def on_error(self, status_code, data):
-                logger.error("Received error code "+str(status_code)+".")
+                    logger.warn(
+                        "The filtered stream has matched more Tweets than its current rate limit allows it to be delivered.")
 
-        stream = TapStreamer(args.consumer_key, args.consumer_secret, args.access_token, args.access_token_secret)
+            def on_error(self, status_code, data):
+                logger.error("Received error code " + str(status_code) + ".")
+
+        stream = TapStreamer(args.consumer_key, args.consumer_secret,
+                             args.access_token, args.access_token_secret)
 
         logger.info("Collecting tweets from the streaming API...")
 
         if args.follow or args.track or args.locations or args.follow_load or args.track_load:
 
             if args.track_load and args.track is None:
-                 args.track = load_query(args.track_load,1)
+                 args.track = load_query(args.track_load, 1)
 
             if args.follow_load and args.follow is None:
-                 args.follow = load_query(args.follow_load,1)
+                 args.follow = load_query(args.follow_load, 1)
 
             if args.follow_load and args.follow:
-                prep_follow = load_query(args.follow_load,1)
+                prep_follow = load_query(args.follow_load, 1)
                 args.follow += ',' + prep_follow
 
             if args.track_load and args.track:
-                prep_track = load_query(args.track_load,1)
+                prep_track = load_query(args.track_load, 1)
                 args.track += ',' + prep_track
 
             # https://github.com/ryanmcgrath/twython/issues/288#issuecomment-66360160
             while True:
                 try:
-                    stream.statuses.filter(follow=args.follow,track=args.track,locations=args.locations)
+                    stream.statuses.filter(
+                        follow=args.follow, track=args.track, locations=args.locations)
                 except requests.exceptions.ChunkedEncodingError as e:
                     e = sys.exc_info()[0]
-                    print('ERROR:',e)
+                    print('ERROR:', e)
                     continue
 
         elif args.firehose:
