@@ -212,10 +212,7 @@ def main():
         queries = db[args.queries_collection]
         tweets = db[args.tweets_collection]
 
-        queries.create_index([("query", pymongo.ASCENDING)], unique=True)
-        queries.create_index([("geocode", pymongo.ASCENDING)], unique=True)
-        queries.create_index([("lang", pymongo.ASCENDING)], unique=True)
-
+        queries.create_index([("query", pymongo.ASCENDING), ("geocode", pymongo.ASCENDING), ("lang", pymongo.ASCENDING)], unique=True)
         tweets.create_index([("id", pymongo.DESCENDING)], unique=True)
         tweets.create_index([("coordinates.coordinates", pymongo.GEO2D), ])
 
